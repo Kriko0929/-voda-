@@ -1,0 +1,205 @@
+/* HÁTTÉR */
+body {
+    margin: 0;
+    background-image: url('../img/hatter.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* STOP GOMB BAL FELSŐ SAROK – PIROS, ÁTLÁTSZÓ, FELIRAT NÉLKÜL */
+#stopBtn {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    width: 55px;
+    height: 55px;
+    background: rgba(255, 0, 0, 0.55); /* PIROS + ÁTLÁTSZÓ */
+    border: 4px solid black;
+    border-radius: 50%; /* KEREK GOMB */
+    cursor: pointer;
+    z-index: 600;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    transition: transform 0.15s ease, background 0.2s ease;
+}
+
+#stopBtn:hover {
+    transform: scale(1.12);
+    background: rgba(255, 0, 0, 0.75);
+}
+
+#stopBtn:active {
+    transform: scale(0.9);
+    background: rgba(255, 0, 0, 0.9);
+}
+
+/* MENÜ IKON */
+#menuBtn {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 500;
+    background: rgba(255,255,255,0.85);
+    border-bottom-left-radius: 25px;
+    border: 4px solid black;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+#menuBtn div {
+    width: 70%;
+    height: 8px;
+    background: black;
+    margin: 5px 0;
+    border-radius: 5px;
+}
+
+/* GOMBOK RÁCSA */
+#buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 25px;
+    padding: 20px;
+    height: calc(100vh - 100px);
+    margin-top: 100px;
+}
+
+/* HANG GOMBOK */
+.btn-sound {
+    width: 100%;
+    height: 100%;
+    border-radius: 40px;
+    cursor: pointer;
+    border: 10px solid black;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: transform 0.15s cubic-bezier(.17,.67,.83,.67),
+                box-shadow 0.2s ease;
+}
+
+.btn-sound:hover {
+    transform: scale(1.07);
+    box-shadow: 0 0 20px rgba(0,0,0,0.45);
+}
+
+.btn-sound:active {
+    transform: scale(0.88);
+    box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+
+/* FELIRAT RÁÍRVA A GOMBRA */
+.btn-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-label {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-5px);
+    font-size: 26px;
+    font-weight: 900;
+    color: black;
+    text-shadow: 0 0 5px white;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.btn-label.show {
+    display: block;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* MENÜ PANEL */
+#panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 420px;
+    height: 100%;
+    background: rgba(255,255,255,0.92);
+    border-left: 6px solid black;
+    box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+    padding: 25px;
+    transition: right 0.3s ease;
+    overflow-y: auto;
+    z-index: 200;
+    color: black;
+    font-family: "Segoe UI", sans-serif;
+}
+
+#panel .btn {
+    border-radius: 20px;
+    padding: 15px;
+    font-size: 20px;
+    font-weight: 700;
+    border: 3px solid black;
+    transition: transform 0.15s ease,
+                box-shadow 0.2s ease;
+}
+
+#panel .btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(0,0,0,0.35);
+}
+
+#panel .btn:active {
+    transform: scale(0.92);
+    box-shadow: 0 0 6px rgba(0,0,0,0.25);
+}
+
+/* FILE WRAPPER + FELIRAT KÖZÉPEN */
+.file-wrapper {
+    width: 90%;
+    margin: 0 auto;
+    background: rgba(0,0,0,0.05);
+    border: 3px solid black;
+    padding: 15px;
+    border-radius: 15px;
+    font-size: 20px;
+    text-align: center;
+}
+
+.file-wrapper span {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+/* FILE INPUT – böngésző szöveg eltüntetése */
+.file-input {
+    width: 100%;
+    height: 50px;
+    cursor: pointer;
+    color: transparent;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.file-input::-webkit-file-upload-button {
+    visibility: hidden;
+}
+
+.file-input::file-selector-button {
+    visibility: hidden;
+}
+
+/* PANEL TARTALOM KÖZÉPRE */
+.subpanel {
+    display: none;
+    text-align: center;
+}
