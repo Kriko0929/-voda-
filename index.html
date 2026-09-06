@@ -3,116 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1200">
-
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="css/style.css">
-
     <title>Óvoda Soundboard</title>
 </head>
+<body>
 
-<body class="menu-closed">
-
-<!-- STOP GOMB BAL FELSŐ SAROK -->
 <button id="stopBtn" onclick="stopSound()"></button>
 
-<!-- MENÜ IKON -->
 <div id="menuBtn" onclick="togglePanel()">
     <div></div>
     <div></div>
     <div></div>
 </div>
 
-<!-- GOMBOK -->
 <div id="buttons">
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 1</span>
         <button class="btn-sound" onclick="playSound(0)"></button>
     </div>
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 2</span>
         <button class="btn-sound" onclick="playSound(1)"></button>
     </div>
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 3</span>
         <button class="btn-sound" onclick="playSound(2)"></button>
     </div>
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 4</span>
         <button class="btn-sound" onclick="playSound(3)"></button>
     </div>
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 5</span>
         <button class="btn-sound" onclick="playSound(4)"></button>
     </div>
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 6</span>
         <button class="btn-sound" onclick="playSound(5)"></button>
     </div>
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 7</span>
         <button class="btn-sound" onclick="playSound(6)"></button>
     </div>
-
     <div class="btn-wrap">
         <span class="btn-label">Gomb 8</span>
         <button class="btn-sound" onclick="playSound(7)"></button>
     </div>
-
 </div>
 
-<!-- MENÜ PANEL -->
 <div id="panel">
-
     <h3 class="mb-3">Beállítások</h3>
-
     <div id="menuList"></div>
 
-    <!-- GOMB BEÁLLÍTÓ PANEL -->
     <div id="editPanel" class="subpanel">
         <h4 id="editTitle"></h4>
 
         <label>Kép feltöltése:</label>
         <div class="file-wrapper">
-            <span id="imgLabel">Nincs</span>
+            <span id="imgLabel">Nincs kép</span>
             <input type="file" accept="image/*" id="imgUpload" class="file-input">
         </div>
 
         <label class="mt-3">Hang feltöltése:</label>
         <div class="file-wrapper">
-            <span id="sndLabel">Nincs</span>
+            <span id="sndLabel">Nincs hang</span>
             <input type="file" accept="audio/*" id="sndUpload" class="file-input">
         </div>
 
         <button class="btn btn-secondary w-100 mt-4" onclick="closeEditPanel()">Vissza</button>
     </div>
 
-    <!-- HÁTTÉR PANEL -->
     <div id="backgroundPanel" class="subpanel">
         <h4>Háttér cseréje</h4>
 
         <div class="file-wrapper">
-            <span id="bgLabel">Nincs</span>
+            <span id="bgLabel">Nincs háttérkép</span>
             <input type="file" accept="image/*" id="bgUpload" class="file-input">
         </div>
 
         <button class="btn btn-secondary w-100 mt-4" onclick="closeBackgroundPanel()">Vissza</button>
     </div>
-
 </div>
 
 <script>
 let sounds = Array(8).fill(null);
 let images = Array(8).fill(null);
+let soundNames = Array(8).fill(null);
 let currentSound = null;
 
-/* STOP GOMB FUNKCIÓ */
+const DB_NAME = "OviSoundboardDB";
+const DB_VERSION = 1;
+const STORE_NAME = "settings";
+let db = null;
+
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = function(event) {
+            const database = event.target.result;
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+                database.createObjectStore(STORE_NAME);
+            }
+        };
+
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            resolve(db);
+        };
+
+        request.onerror = function(event) {
+            console.error("IndexedDB hiba:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+function saveData(key, value) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, "readwrite");
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(value, key);
+
+        request.onsuccess = function() {
+            resolve();
+        };
+
+        request.onerror = function(event) {
+            console.error("Mentési hiba:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+function loadData(key) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, "readonly");
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(key);
+
+        request.onsuccess = function() {
+            resolve(request.result);
+        };
+
+        request.onerror = function(event) {
+            console.error("Betöltési hiba:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
 function stopSound() {
     if (currentSound) {
         currentSound.pause();
@@ -120,64 +161,102 @@ function stopSound() {
     }
 }
 
-/* PANEL NYITÁS + FELIRAT ANIMÁCIÓ */
 function togglePanel() {
     const panel = document.getElementById("panel");
     const labels = document.querySelectorAll(".btn-label");
-
-    const isOpen = panel.style.right === "0px";
+    const isOpen = panel.classList.contains("open");
 
     if (isOpen) {
-        panel.style.right = "-100%";
-        document.body.classList.add("menu-closed");
+        panel.classList.remove("open");
 
         labels.forEach(label => {
             label.classList.remove("show");
-            setTimeout(() => label.style.display = "none", 300);
-        });
 
+            setTimeout(() => {
+                if (!panel.classList.contains("open")) {
+                    label.style.display = "none";
+                }
+            }, 300);
+        });
     } else {
-        panel.style.right = "0px";
-        document.body.classList.remove("menu-closed");
+        panel.classList.add("open");
 
         labels.forEach(label => {
             label.style.display = "block";
-            setTimeout(() => label.classList.add("show"), 10);
+
+            setTimeout(() => {
+                label.classList.add("show");
+            }, 10);
         });
     }
 }
 
-/* HANG FELTÖLTÉSE */
-function setSound(event, index) {
+async function setImage(event, index) {
     const file = event.target.files[0];
-    if (file) {
-        sounds[index] = new Audio(URL.createObjectURL(file));
-        document.getElementById("sndLabel").innerText = file.name;
-    }
-}
 
-/* KÉP FELTÖLTÉSE */
-function setImage(event, index) {
-    const file = event.target.files[0];
-    if (file) {
+    if (!file) {
+        return;
+    }
+
+    try {
+        await saveData("image_" + index, file);
+
         const url = URL.createObjectURL(file);
         images[index] = url;
-        document.querySelectorAll(".btn-sound")[index].style.backgroundImage = `url('${url}')`;
-        document.getElementById("imgLabel").innerText = "Kiválasztva";
+
+        document.querySelectorAll(".btn-sound")[index].style.backgroundImage = `url("${url}")`;
+        document.getElementById("imgLabel").innerText = file.name;
+    } catch (error) {
+        console.error(error);
+        alert("A kép mentése nem sikerült.");
     }
 }
 
-/* HÁTTÉR FELTÖLTÉSE */
-function setBackground(event) {
+async function setSound(event, index) {
     const file = event.target.files[0];
-    if (file) {
+
+    if (!file) {
+        return;
+    }
+
+    try {
+        await saveData("sound_" + index, file);
+        await saveData("soundName_" + index, file.name);
+
+        if (sounds[index]) {
+            sounds[index].pause();
+        }
+
         const url = URL.createObjectURL(file);
-        document.body.style.backgroundImage = `url('${url}')`;
-        document.getElementById("bgLabel").innerText = "Kiválasztva";
+        sounds[index] = new Audio(url);
+        soundNames[index] = file.name;
+
+        document.getElementById("sndLabel").innerText = file.name;
+    } catch (error) {
+        console.error(error);
+        alert("A hang mentése nem sikerült.");
     }
 }
 
-/* HANG LEJÁTSZÁSA – csak EGY hang szólhat egyszerre */
+async function setBackground(event) {
+    const file = event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    try {
+        await saveData("background", file);
+
+        const url = URL.createObjectURL(file);
+        document.body.style.backgroundImage = `url("${url}")`;
+        document.getElementById("bgLabel").innerText = file.name;
+    } catch (error) {
+        console.error(error);
+        alert("A háttérkép mentése nem sikerült.");
+    }
+}
+
 function playSound(index) {
     if (currentSound) {
         currentSound.pause();
@@ -187,72 +266,135 @@ function playSound(index) {
     if (sounds[index]) {
         currentSound = sounds[index];
         currentSound.currentTime = 0;
-        currentSound.play();
+
+        currentSound.play().catch(error => {
+            console.error("Lejátszási hiba:", error);
+        });
     }
 }
 
-/* GOMB BEÁLLÍTÓ PANEL NYITÁSA */
-function openEditPanel(index) {
+async function openEditPanel(index) {
     document.getElementById("menuList").style.display = "none";
     document.getElementById("backgroundPanel").style.display = "none";
     document.getElementById("editPanel").style.display = "block";
 
-    document.getElementById("editTitle").innerText = `Gomb ${index+1} beállítása`;
-
+    document.getElementById("editTitle").innerText = `Gomb ${index + 1} beállítása`;
     document.getElementById("imgUpload").value = "";
     document.getElementById("sndUpload").value = "";
-    document.getElementById("imgLabel").innerText = "Nincs";
-    document.getElementById("sndLabel").innerText = "Nincs";
 
-    document.getElementById("imgUpload").onchange = (e) => setImage(e, index);
-    document.getElementById("sndUpload").onchange = (e) => setSound(e, index);
+    const savedImage = await loadData("image_" + index);
+
+    if (savedImage) {
+        document.getElementById("imgLabel").innerText = savedImage.name || "Kép kiválasztva";
+    } else {
+        document.getElementById("imgLabel").innerText = "Nincs kép";
+    }
+
+    const savedSound = await loadData("sound_" + index);
+    const savedSoundName = await loadData("soundName_" + index);
+
+    if (savedSound) {
+        document.getElementById("sndLabel").innerText = savedSoundName || savedSound.name || "Hang kiválasztva";
+    } else {
+        document.getElementById("sndLabel").innerText = "Nincs hang";
+    }
+
+    document.getElementById("imgUpload").onchange = event => setImage(event, index);
+    document.getElementById("sndUpload").onchange = event => setSound(event, index);
 }
 
-/* GOMB BEÁLLÍTÓ PANEL BEZÁRÁSA */
 function closeEditPanel() {
     document.getElementById("editPanel").style.display = "none";
     document.getElementById("menuList").style.display = "block";
 }
 
-/* HÁTTÉR PANEL NYITÁSA */
-function openBackgroundPanel() {
+async function openBackgroundPanel() {
     document.getElementById("menuList").style.display = "none";
     document.getElementById("editPanel").style.display = "none";
     document.getElementById("backgroundPanel").style.display = "block";
-
     document.getElementById("bgUpload").value = "";
-    document.getElementById("bgLabel").innerText = "Nincs";
 
-    document.getElementById("bgUpload").onchange = (e) => setBackground(e);
+    const savedBackground = await loadData("background");
+
+    if (savedBackground) {
+        document.getElementById("bgLabel").innerText = savedBackground.name || "Háttér kiválasztva";
+    } else {
+        document.getElementById("bgLabel").innerText = "Nincs háttérkép";
+    }
+
+    document.getElementById("bgUpload").onchange = event => setBackground(event);
 }
 
-/* HÁTTÉR PANEL BEZÁRÁSA */
 function closeBackgroundPanel() {
     document.getElementById("backgroundPanel").style.display = "none";
     document.getElementById("menuList").style.display = "block";
 }
 
-/* MENÜ LISTA FELTÖLTÉSE */
-window.onload = () => {
-    const menuList = document.getElementById("menuList");
+async function initialize() {
+    try {
+        await openDatabase();
 
-    for (let i = 0; i < 8; i++) {
-        menuList.innerHTML += `
-            <button class="btn btn-danger w-100 mb-3" onclick="openEditPanel(${i})">
-                Gomb ${i+1} beállítása
-            </button>
-        `;
+        for (let i = 0; i < 8; i++) {
+            const savedImage = await loadData("image_" + i);
+
+            if (savedImage) {
+                const url = URL.createObjectURL(savedImage);
+                images[i] = url;
+                document.querySelectorAll(".btn-sound")[i].style.backgroundImage = `url("${url}")`;
+            }
+        }
+
+        for (let i = 0; i < 8; i++) {
+            const savedSound = await loadData("sound_" + i);
+
+            if (savedSound) {
+                const url = URL.createObjectURL(savedSound);
+                sounds[i] = new Audio(url);
+
+                const savedName = await loadData("soundName_" + i);
+                soundNames[i] = savedName || savedSound.name || "Hang";
+            }
+        }
+
+        const savedBackground = await loadData("background");
+
+        if (savedBackground) {
+            const url = URL.createObjectURL(savedBackground);
+            document.body.style.backgroundImage = `url("${url}")`;
+        }
+
+        const menuList = document.getElementById("menuList");
+        menuList.innerHTML = "";
+
+        for (let i = 0; i < 8; i++) {
+            const button = document.createElement("button");
+
+            button.className = "btn btn-danger w-100 mb-3";
+            button.innerText = `Gomb ${i + 1} beállítása`;
+            button.onclick = () => openEditPanel(i);
+
+            menuList.appendChild(button);
+        }
+
+        const backgroundButton = document.createElement("button");
+
+        backgroundButton.className = "btn btn-dark w-100 mb-3";
+        backgroundButton.innerText = "Háttér cseréje";
+        backgroundButton.onclick = () => openBackgroundPanel();
+
+        menuList.appendChild(backgroundButton);
+
+        console.log("Soundboard sikeresen betöltve.");
+    } catch (error) {
+        console.error("Inicializálási hiba:", error);
+
+        alert("Az oldal adatai nem tölthetők be. Ellenőrizd, hogy modern böngészőt használsz-e.");
     }
+}
 
-    menuList.innerHTML += `
-        <button class="btn btn-dark w-100 mb-3" onclick="openBackgroundPanel()">
-            Háttér cseréje
-        </button>
-    `;
-};
+window.addEventListener("DOMContentLoaded", initialize);
 </script>
 
 <script src="bootstrap/js/bootstrap.min.js"></script>
-
 </body>
 </html>
